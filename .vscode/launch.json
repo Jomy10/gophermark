@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug gophermark (swift)",
+            "program": "${workspaceFolder:gophermark}/swift/.build/debug/gophermark",
+            "args": [],
+            "cwd": "${workspaceFolder:gophermark}/swift",
+            "preLaunchTask": "swift: Build Debug gophermark (swift)"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Release gophermark (swift)",
+            "program": "${workspaceFolder:gophermark}/swift/.build/release/gophermark",
+            "args": [],
+            "cwd": "${workspaceFolder:gophermark}/swift",
+            "preLaunchTask": "swift: Build Release gophermark (swift)"
+        }
+    ]
+}
