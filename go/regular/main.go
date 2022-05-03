@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/faiface/mainthread"
 	"github.com/go-gl/mathgl/mgl32"
 	"github.com/unitoftime/gl"
 	"github.com/unitoftime/gl/glutil"
@@ -36,16 +37,19 @@ func loadImage(path string) (*image.NRGBA, error) {
 }
 
 func main() {
-	err := run()
-	if err != nil {
-		log.Fatalln(err)
-	}
+	mainthread.Run(run)
 }
 
 var width int = 1920
 var height int = 1080
 
-func run() error {
+func run() {
+	mainthread.Call(func() {
+		gophermark()
+	})
+}
+
+func gophermark() {
 	// ------------
 	// Setup Window
 	// ------------
@@ -57,9 +61,9 @@ func run() error {
 	glfw.WindowHint(glfw.ContextVersionMajor, 3)
 	glfw.WindowHint(glfw.ContextVersionMinor, 3)
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
-	// glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True) // Compatibility - For Mac
+	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True) // Compatibility - For Mac
 
-	win, err := glfw.CreateWindow(width, height, "Benchmark", glfw.GetPrimaryMonitor(), nil)
+	win, err := glfw.CreateWindow(width, height, "Benchmark", nil /*glfw.GetPrimaryMonitor()*/, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +80,7 @@ func run() error {
 	// ------------
 	program, err := glutil.CreateProgram(vertexSource, fragmentSource)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	mesh := NewMesh()
@@ -84,7 +88,7 @@ func run() error {
 	// ------------
 	// Load Texture
 	// ------------
-	manImage, err := loadImage("../man.png")
+	manImage, err := loadImage("man.png")
 	if err != nil {
 		panic(err)
 	}
@@ -178,7 +182,6 @@ func run() error {
 	// for i := range times {
 	// 	log.Println(times[i].Count, 1000 * times[i].Time.Seconds())
 	// }
-	return err
 }
 
 type Frame struct {

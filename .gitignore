@@ -1,0 +1,5 @@
+/.vscode
+**/*.txt
+**/*.xls
+**/*.xlsx
+**/.DS_Store

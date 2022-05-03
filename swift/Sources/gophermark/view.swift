@@ -1,5 +1,7 @@
 import Metal
 import MetalKit
+import AppKit
+import Accelerate
 
 let WIDTH : CGFloat = 1280
 let HEIGHT: CGFloat = 720
@@ -49,7 +51,7 @@ func getView() throws -> MTKView {
     renderEncoder.setVertexBuffer(mesh.vertexBuffers[0].buffer, offset: 0, index: 0)
 
     guard let submesh = mesh.submeshes.first else {
-        fatalError()
+        fatalError("couldn't create submesh")
     }
 
     //////// TODO: to other func ///////
@@ -62,6 +64,8 @@ func getView() throws -> MTKView {
         indexBufferOffset: 0
     )
 
+    getTexture(device: device)
+
     // Finish sending commands
     renderEncoder.endEncoding()
     let drawable = view.currentDrawable!
@@ -72,3 +76,69 @@ func getView() throws -> MTKView {
 }
 
 /// Draw tests
+func getTexture(device: MTLDevice) {
+    // read image 
+    // let image = try Data(contentsOf: URL(fileURLWithPath: "../man.png")) 
+    guard let nsImage = NSImage(contentsOf: URL(fileURLWithPath: "../man.png")) else { fatalError("couldn't create NSImage") }
+    guard let image = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil), 
+          let sourceColorSpace = image.colorSpace else { fatalError("Couldn't create CGImage or color space") }
+    let width = image.width
+    let height = image.height
+
+    let bytesPerPixel = 4
+    let bitsPerComponent = 8
+
+    let bytesPerRow = 4 * bytesPerPixel
+
+    // Create region
+    let textureDescriptor = MTLTextureDescriptor
+        .texture2DDescriptor(
+            pixelFormat: .bgra8Unorm,
+            width: width, 
+            height: height, 
+            mipmapped: false)
+
+    // let textureLoader = MTKTextureLoader(device: device)
+    // let texture = try textureLoader.newTexture(cgImage: image, options: nil)
+    guard let texture = device.makeTexture(descriptor: textureDescriptor) else {
+        fatalError("Couldn't create metal texture")
+    }
+
+    var format = vImage_CGImageFormat(
+        bitsPerComponent: UInt32(image.bitsPerComponent),
+        bitsPerPixel: UInt32(image.bitsPerPixel), 
+        colorSpace: Unmanaged.passRetained(sourceColorSpace),
+        bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.last.rawValue),
+        version: 0,
+        decode: nil,
+        renderingIntent: CGColorRenderingIntent.defaultIntent
+    )
+    var sourceBuffer = vImage_Buffer()
+
+    defer {
+        free(sourceBuffer.data)
+    }
+
+    var err = vImageBuffer_InitWithCGImage(&sourceBuffer, &format, nil, image, numericCast(kvImageNoFlags))
+    
+    guard err == kvImageNoError else {
+        fatalError("can't vImageBuffer_InitWithCGImage")
+    }
+
+    var destCGImage = vImageCreateCGImageFromBuffer(&sourceBuffer, &format, nil, nil, numericCast(kvImageNoFlags), &err)?.takeRetainedValue()
+
+    guard err == kvImageNoError else {
+        fatalError("can't vImageCreateCGImageFromBuffer")
+    }
+
+    let dstData: CFData = (destCGImage!.dataProvider!.data)!
+    let pixelData = CFDataGetBytePtr(dstData)
+
+    destCGImage = nil
+
+    // copy image data into texture
+    let region = MTLRegionMake2D(0, 0, width, height)
+
+    texture.replace(region: region, mipmapLevel: 0, withBytes: pixelData!, bytesPerRow: bytesPerRow)
+}
+
