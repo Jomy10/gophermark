@@ -9,30 +9,52 @@ extensionReg = /.*?\.txt/
 # New spreadsheet
 book = Spreadsheet::Workbook.new
 
-# TODO: sort files by number
+# Collect all files
+files = []
 Dir.each_child('.') do |file|
     if extensionReg.match file
-        sheetName = ""
-        if /(?<name>.*?)\.txt/ =~ file 
-            sheetName = name
-        end
-        sheet = book.create_worksheet :name => sheetName
+        files.push file
+    end
+end
 
-        contents = File.read file
-        split = contents.split "\n"
+# Sort all files (less gophers to more gophers)
+files.sort! { |f1, f2| 
+    f1N = 0
+    f2N = 0
+    if /(?<name>.*?)\.txt/ =~ f1 
+        f1N = name.to_i
+    end
+    if /(?<name>.*?)\.txt/ =~ f2
+        f2N = name.to_i
+    end
 
-        sheet[0,0] = "date"
-        sheet[0,1] = "ms"
 
-        row = 1
-        for rowS in split
-            if /(?<date>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) (?<ms>\d+.\d*)/ =~ rowS
-                sheet[row, 0] = date
-                sheet[row, 1] = ms.to_f
-                row += 1
-            end
+    f1N <=> f2N
+}
+
+# Add data to spreadsheets
+files.each do |file|
+    sheetName = ""
+    if /(?<name>.*?)\.txt/ =~ file 
+        sheetName = name
+    end
+    sheet = book.create_worksheet :name => sheetName
+
+    contents = File.read file
+    split = contents.split "\n"
+
+    sheet[0,0] = "date"
+    sheet[0,1] = "ms"
+
+    row = 1
+    for rowS in split
+        if /(?<date>\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}) (?<ms>\d+.\d*)/ =~ rowS
+            sheet[row, 0] = date
+            sheet[row, 1] = ms.to_f
+            row += 1
         end
     end
 end
 
+# Write file
 book.write 'data.xls'
